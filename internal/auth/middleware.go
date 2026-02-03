@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -25,7 +26,7 @@ func (s *FirebaseAuthService) VerifyIDToken(ctx context.Context, idToken string)
 }
 
 // MockAuthService implements AuthService for testing
-type MockAuthService struct {}
+type MockAuthService struct{}
 
 func (m *MockAuthService) VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error) {
 	// Return a valid mock token
@@ -33,7 +34,7 @@ func (m *MockAuthService) VerifyIDToken(ctx context.Context, idToken string) (*a
 		UID: "test-user-id",
 		Claims: map[string]interface{}{
 			"email": "test@example.com",
-			"name": "Test User",
+			"name":  "Test User",
 		},
 	}, nil
 }
@@ -72,8 +73,10 @@ func AuthMiddleware(service AuthService) gin.HandlerFunc {
 
 		token, err := service.VerifyIDToken(context.Background(), tokenString)
 		if err != nil {
+			log.Printf("Token verification failed: %v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid token",
+				"error":   "Invalid token",
+				"details": err.Error(),
 			})
 			return
 		}

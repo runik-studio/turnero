@@ -12,10 +12,7 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/main .
 # Copy .env if it exists (usually better to pass env vars in docker-compose, but useful for standalone)
-COPY --from=builder /app/.env .
-
 COPY --from=builder /app/firebaseCredentials.json .
 
 
-EXPOSE 8080
 CMD ["./main"]

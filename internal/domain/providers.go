@@ -2,21 +2,28 @@ package domain
 
 import (
 	"context"
-	
 )
 
 type Providers struct {
-	ID string `json:"id" bson:"_id,omitempty"`
-	
-	Address string `json:"address" bson:"address"`
-	
-	AvatarUrl string `json:"avatar_url" bson:"avatar_url"`
-	
-	EstablishmentName string `json:"establishment_name" bson:"establishment_name"`
-	
-	FullName string `json:"full_name" bson:"full_name"`
-	
-	
+	ID string `json:"id" firestore:"-"`
+
+	Address string `json:"address" firestore:"Address"`
+
+	AvatarUrl string `json:"avatar_url" firestore:"AvatarUrl"`
+
+	EstablishmentName string `json:"establishment_name" firestore:"EstablishmentName"`
+
+	Phone string `json:"phone" firestore:"Phone"`
+}
+
+type DaySchedule struct {
+	Ranges  []TimeRange `json:"ranges" firestore:"Ranges"`
+	Enabled bool        `json:"enabled" firestore:"Enabled"`
+}
+
+type TimeRange struct {
+	Start string `json:"start" firestore:"Start"`
+	End   string `json:"end" firestore:"End"`
 }
 
 type ProvidersRepository interface {

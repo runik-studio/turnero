@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"ServiceBookingApp/internal/domain"
 	"github.com/gin-gonic/gin"
@@ -22,7 +23,7 @@ func (m *MockAppointmentsRepository) List(ctx context.Context, limit, offset int
 	for _, v := range m.Data {
 		results = append(results, v)
 	}
-	
+
 	// Simple slicing for mock pagination
 	if offset >= len(results) {
 		return []*domain.Appointments{}, nil
@@ -61,10 +62,14 @@ func (m *MockAppointmentsRepository) Delete(ctx context.Context, id string) erro
 	return nil
 }
 
+func (m *MockAppointmentsRepository) ListByDate(ctx context.Context, date time.Time) ([]*domain.Appointments, error) {
+	return nil, nil
+}
+
 func TestAppointmentsHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := &MockAppointmentsRepository{Data: make(map[string]*domain.Appointments)}
-	handler := NewAppointmentsHandler(repo)
+	handler := NewAppointmentsHandler(repo, nil, nil)
 	r := gin.Default()
 
 	r.GET("/appointments", handler.List)

@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"ServiceBookingApp/internal/config"
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
-	"google.golang.org/api/option"
 	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 )
 
 // Repository defines the interface for database operations
@@ -29,11 +30,13 @@ type FirestoreRepository struct {
 // NewFirestoreRepository initializes the Firestore client and returns a Repository
 func NewFirestoreRepository() (Repository, error) {
 	ctx := context.Background()
-	
+
 	// Use credentials file copied to the project root
 	opt := option.WithCredentialsFile("firebaseCredentials.json")
-	conf := &firebase.Config{ProjectID: "turnero-165d4"}
-	
+
+	projectID := config.GetFirebaseProjectID()
+	conf := &firebase.Config{ProjectID: projectID}
+
 	app, err := firebase.NewApp(ctx, conf, opt)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing app: %v", err)

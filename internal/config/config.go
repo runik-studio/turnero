@@ -1,6 +1,34 @@
 package config
 
-import "os"
+import (
+	"encoding/json"
+	"log"
+	"os"
+)
+
+func GetFirebaseProjectID() string {
+	if id := os.Getenv("FIREBASE_PROJECT_ID"); id != "" {
+		return id
+	}
+
+	data, err := os.ReadFile("firebaseCredentials.json")
+	if err != nil {
+		log.Printf("Warning: Could not read firebaseCredentials.json to find project_id: %v", err)
+		return ""
+	}
+
+	var creds map[string]interface{}
+	if err := json.Unmarshal(data, &creds); err != nil {
+		log.Printf("Warning: Could not parse firebaseCredentials.json: %v", err)
+		return ""
+	}
+
+	if id, ok := creds["project_id"].(string); ok && id != "" {
+		return id
+	}
+
+	return ""
+}
 
 func GetMPAccessToken() string {
 	token := os.Getenv("MP_ACCESS_TOKEN")

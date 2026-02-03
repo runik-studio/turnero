@@ -1,21 +1,13 @@
-version: '3.8'
+version: "3.8"
 
 services:
   api:
     build: .
     ports:
-      - "8080:8080"
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
     environment:
-      - PORT=8080
-      
       - FIRESTORE_PROJECT_ID=turnero-165d4
       - GOOGLE_APPLICATION_CREDENTIALS=/app/firebaseCredentials.json
-      
-      
       - MOCK_AUTH=false
-      
-      
-    depends_on:
-      
-
-  

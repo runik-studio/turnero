@@ -7,22 +7,20 @@ import (
 
 type Users struct {
 	ID string `json:"id" bson:"_id,omitempty"`
-	
+
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
-	
+
 	Email string `json:"email" bson:"email"`
-	
+
 	Name string `json:"name" bson:"name"`
-	
+
 	Picture string `json:"picture" bson:"picture"`
-	
+
 	RoleId string `json:"role_id" bson:"role_id"`
-	
+
 	Uid string `json:"uid" bson:"uid"`
-	
+
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
-	
-	
 }
 
 type UsersRepository interface {

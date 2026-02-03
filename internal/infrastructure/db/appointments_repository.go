@@ -2,8 +2,11 @@ package db
 
 import (
 	"context"
-	
+	"time"
+
 	"ServiceBookingApp/internal/domain"
+
+	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
 )
 
@@ -17,9 +20,48 @@ func NewAppointmentsRepository(client *FirestoreRepository) *AppointmentsReposit
 
 // GetByEmail is used for JWT auth
 
+func (r *AppointmentsRepository) ListByDate(ctx context.Context, date time.Time) ([]*domain.Appointments, error) {
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	endOfDay := startOfDay.Add(24 * time.Hour)
 
-func (r *AppointmentsRepository) List(ctx context.Context, limit, offset int) ([]*domain.Appointments, error) {
-	iter := r.client.client.Collection("appointments").Offset(offset).Limit(limit).Documents(ctx)
+	iter := r.client.client.Collection("appointments").
+		Where("ScheduledAt", ">=", startOfDay).
+		Where("ScheduledAt", "<", endOfDay).
+		Documents(ctx)
+
+	var results []*domain.Appointments
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		var m domain.Appointments
+		if err := doc.DataTo(&m); err != nil {
+			return nil, err
+		}
+		m.ID = doc.Ref.ID
+		results = append(results, &m)
+	}
+	return results, nil
+}
+
+func (r *AppointmentsRepository) List(ctx context.Context, limit, offset int, filterType string) ([]*domain.Appointments, error) {
+	query := r.client.client.Collection("appointments").Query
+	now := time.Now()
+
+	if filterType == "upcoming" {
+		query = query.Where("ScheduledAt", ">=", now).OrderBy("ScheduledAt", firestore.Asc)
+	} else if filterType == "past" {
+		query = query.Where("ScheduledAt", "<", now).OrderBy("ScheduledAt", firestore.Desc)
+	} else {
+		// Default ordering if no type specified
+		query = query.OrderBy("ScheduledAt", firestore.Desc)
+	}
+
+	iter := query.Offset(offset).Limit(limit).Documents(ctx)
 	var results []*domain.Appointments
 	for {
 		doc, err := iter.Next()
@@ -59,8 +101,6 @@ func (r *AppointmentsRepository) Create(ctx context.Context, model *domain.Appoi
 	}
 	return ref.ID, nil
 }
-
-
 
 func (r *AppointmentsRepository) Update(ctx context.Context, id string, m *domain.Appointments) error {
 	_, err := r.client.client.Collection("appointments").Doc(id).Set(ctx, m)
