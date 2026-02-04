@@ -7,6 +7,8 @@ import (
 type Providers struct {
 	ID string `json:"id" firestore:"-"`
 
+	UserId string `json:"user_id" firestore:"UserId"`
+
 	Address string `json:"address" firestore:"Address"`
 
 	AvatarUrl string `json:"avatar_url" firestore:"AvatarUrl"`

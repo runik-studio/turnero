@@ -7,6 +7,8 @@ import (
 type Services struct {
 	ID string `json:"id" firestore:"-"`
 
+	ProviderId string `json:"provider_id" firestore:"ProviderId"`
+
 	Description interface{} `json:"description" firestore:"Description"`
 
 	DurationMinutes int `json:"duration_minutes" firestore:"DurationMinutes"`

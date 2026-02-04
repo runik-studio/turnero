@@ -36,7 +36,7 @@ func (h *SchedulesHandler) GetByProvider(c *gin.Context) {
 	if schedule == nil {
 		// Return empty schedule structure if not found
 		c.JSON(http.StatusOK, domain.Schedule{
-			ProviderID: providerID,
+			ProviderId: providerID,
 			Type:       domain.ScheduleType(scheduleType),
 			Days:       make(map[string]domain.DaySchedule),
 		})
@@ -53,7 +53,7 @@ func (h *SchedulesHandler) Upsert(c *gin.Context) {
 		return
 	}
 
-	if schedule.ProviderID == "" {
+	if schedule.ProviderId == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "provider_id is required"})
 		return
 	}

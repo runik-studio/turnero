@@ -8,6 +8,8 @@ import (
 type Appointments struct {
 	ID string `json:"id" firestore:"-"`
 
+	ServiceId string `json:"service_id" firestore:"ServiceId"`
+
 	Notes interface{} `json:"notes" firestore:"Notes"`
 
 	ScheduledAt time.Time `json:"scheduled_at" firestore:"ScheduledAt"`

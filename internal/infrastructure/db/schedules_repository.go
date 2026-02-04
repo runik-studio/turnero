@@ -21,7 +21,7 @@ func NewSchedulesRepository(client *FirestoreRepository) *SchedulesRepository {
 func (r *SchedulesRepository) GetByProvider(ctx context.Context, providerID string, scheduleType domain.ScheduleType) (*domain.Schedule, error) {
 	// Query for schedule with matching provider_id and type
 	iter := r.client.client.Collection("schedules").
-		Where("provider_id", "==", providerID).
+		Where("ProviderId", "==", providerID).
 		Where("type", "==", scheduleType).
 		Limit(1).
 		Documents(ctx)
@@ -43,7 +43,7 @@ func (r *SchedulesRepository) GetByProvider(ctx context.Context, providerID stri
 }
 
 func (r *SchedulesRepository) Upsert(ctx context.Context, schedule *domain.Schedule) error {
-	if schedule.ProviderID == "" {
+	if schedule.ProviderId == "" {
 		return errors.New("provider_id is required")
 	}
 
@@ -55,7 +55,7 @@ func (r *SchedulesRepository) Upsert(ctx context.Context, schedule *domain.Sched
 		docRef = collection.Doc(schedule.ID)
 	} else {
 		// Try to find existing one to update by provider and type
-		existing, err := r.GetByProvider(ctx, schedule.ProviderID, schedule.Type)
+		existing, err := r.GetByProvider(ctx, schedule.ProviderId, schedule.Type)
 		if err != nil {
 			return err
 		}
