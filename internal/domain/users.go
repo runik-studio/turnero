@@ -8,17 +8,17 @@ import (
 type Users struct {
 	ID string `json:"id" bson:"_id,omitempty" firestore:"-"`
 
-	CreatedAt time.Time `json:"created_at" bson:"created_at"`
+	CreatedAt time.Time `json:"created_at" bson:"created_at" firestore:"CreatedAt"`
 
-	Email string `json:"email" bson:"email"`
+	Email string `json:"email" bson:"email" firestore:"Email"`
 
-	Name string `json:"name" bson:"name"`
+	Name string `json:"name" bson:"name" firestore:"Name"`
 
-	Picture string `json:"picture" bson:"picture"`
+	Picture string `json:"picture" bson:"picture" firestore:"Picture"`
 
-	RoleId string `json:"role_id" bson:"role_id"`
+	RoleId string `json:"role_id" bson:"role_id" firestore:"RoleId"`
 
-	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
+	UpdatedAt time.Time `json:"updated_at" bson:"updated_at" firestore:"UpdatedAt"`
 }
 
 type UsersRepository interface {

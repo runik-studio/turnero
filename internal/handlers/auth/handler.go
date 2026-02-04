@@ -51,7 +51,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 	userToken := userTokenInterface.(*firebaseAuth.Token)
 	uid := userToken.UID
-	
+
 	var email string
 	if e, ok := userToken.Claims["email"].(string); ok {
 		email = e
@@ -59,7 +59,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	// Check if user exists using Repository
 	docSnap, err := h.Repository.Get(context.Background(), uid)
-	
+
 	isNewUser := (err != nil || docSnap == nil)
 
 	data := &domain.Users{
