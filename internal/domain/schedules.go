@@ -13,7 +13,7 @@ const (
 )
 
 type Schedule struct {
-	ID         string                 `json:"id" bson:"_id,omitempty" firestore:"id,omitempty"`
+	ID         string                 `json:"id" bson:"_id,omitempty" firestore:"-"`
 	ProviderID string                 `json:"provider_id" bson:"provider_id" firestore:"ProviderID"`
 	Type       ScheduleType           `json:"type" bson:"type" firestore:"Type"`
 	Days       map[string]DaySchedule `json:"days" bson:"days" firestore:"Days"`

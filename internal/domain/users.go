@@ -6,7 +6,7 @@ import (
 )
 
 type Users struct {
-	ID string `json:"id" bson:"_id,omitempty"`
+	ID string `json:"id" bson:"_id,omitempty" firestore:"-"`
 
 	CreatedAt time.Time `json:"created_at" bson:"created_at"`
 
@@ -17,8 +17,6 @@ type Users struct {
 	Picture string `json:"picture" bson:"picture"`
 
 	RoleId string `json:"role_id" bson:"role_id"`
-
-	Uid string `json:"uid" bson:"uid"`
 
 	UpdatedAt time.Time `json:"updated_at" bson:"updated_at"`
 }
