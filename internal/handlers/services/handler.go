@@ -67,21 +67,18 @@ func (h *ServicesHandler) Create(c *gin.Context) {
 func (h *ServicesHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 	
-	// Get the existing service first
 	existing, err := h.repo.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "service not found"})
 		return
 	}
 	
-	// Parse the update request
 	var updates domain.Services
 	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	
-	// Update only the fields that are provided (non-zero values)
 	if updates.Title != "" {
 		existing.Title = updates.Title
 	}
@@ -101,7 +98,6 @@ func (h *ServicesHandler) Update(c *gin.Context) {
 		existing.Color = updates.Color
 	}
 	
-	// Update UpdatedAt timestamp
 	existing.UpdatedAt = utils.Now()
 	
 	if err := h.repo.Update(c.Request.Context(), id, existing); err != nil {
@@ -109,25 +105,21 @@ func (h *ServicesHandler) Update(c *gin.Context) {
 		return
 	}
 	
-	// Return the updated service object
 	c.JSON(http.StatusOK, existing)
 }
 
 func (h *ServicesHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	
-	// Get the service first
 	service, err := h.repo.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "service not found"})
 		return
 	}
 	
-	// Set DeletedAt to current time (soft delete)
 	now := utils.Now()
 	service.DeletedAt = &now
 	
-	// Update the service with DeletedAt set
 	if err := h.repo.Update(c.Request.Context(), id, service); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

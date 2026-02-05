@@ -16,9 +16,6 @@ func NewServicesRepository(client *FirestoreRepository) *ServicesRepository {
 	return &ServicesRepository{client: client}
 }
 
-// GetByEmail is used for JWT auth
-
-
 func (r *ServicesRepository) List(ctx context.Context, limit, offset int) ([]*domain.Services, error) {
 	iter := r.client.client.Collection("services").Offset(offset).Limit(limit).Documents(ctx)
 	var results []*domain.Services
@@ -63,8 +60,6 @@ func (r *ServicesRepository) Create(ctx context.Context, model *domain.Services)
 	}
 	return ref.ID, nil
 }
-
-
 
 func (r *ServicesRepository) Update(ctx context.Context, id string, m *domain.Services) error {
 	m.UpdatedAt = utils.Now()

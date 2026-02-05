@@ -1,2 +1,4 @@
 firebaseCredentials.json
 .env
+*.env
+*.env.*

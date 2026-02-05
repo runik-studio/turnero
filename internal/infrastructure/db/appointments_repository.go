@@ -19,8 +19,6 @@ func NewAppointmentsRepository(client *FirestoreRepository) *AppointmentsReposit
 	return &AppointmentsRepository{client: client}
 }
 
-// GetByEmail is used for JWT auth
-
 func (r *AppointmentsRepository) ListByDate(ctx context.Context, date time.Time) ([]*domain.Appointments, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	endOfDay := startOfDay.Add(24 * time.Hour)
@@ -58,7 +56,6 @@ func (r *AppointmentsRepository) List(ctx context.Context, limit, offset int, fi
 	} else if filterType == "past" {
 		query = query.Where("ScheduledAt", "<", now).OrderBy("ScheduledAt", firestore.Desc)
 	} else {
-		// Default ordering if no type specified
 		query = query.OrderBy("ScheduledAt", firestore.Desc)
 	}
 

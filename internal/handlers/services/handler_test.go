@@ -23,7 +23,6 @@ func (m *MockServicesRepository) List(ctx context.Context, limit, offset int) ([
 		results = append(results, v)
 	}
 	
-	// Simple slicing for mock pagination
 	if offset >= len(results) {
 		return []*domain.Services{}, nil
 	}

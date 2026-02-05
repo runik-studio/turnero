@@ -78,7 +78,6 @@ func (h *AppointmentsHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Validate that the appointment is not in the past
 	now := utils.Now()
 	if m.ScheduledAt.Before(now) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot create appointment in the past"})
@@ -97,32 +96,27 @@ func (h *AppointmentsHandler) Create(c *gin.Context) {
 func (h *AppointmentsHandler) Update(c *gin.Context) {
 	id := c.Param("id")
 	
-	// Get the existing appointment first
 	existing, err := h.repo.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "appointment not found"})
 		return
 	}
 	
-	// Parse the update request
 	var updates domain.Appointments
 	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	
-	// Only update the Status field (the main use case for Update)
 	if updates.Status != "" {
 		existing.Status = updates.Status
 		
-		// If status is being set to cancelled, also set DeletedAt (soft delete)
 		if updates.Status == "cancelled" {
 			now := utils.Now()
 			existing.DeletedAt = &now
 		}
 	}
 	
-	// Update UpdatedAt timestamp
 	existing.UpdatedAt = utils.Now()
 	
 	if err := h.repo.Update(c.Request.Context(), id, existing); err != nil {
@@ -130,25 +124,21 @@ func (h *AppointmentsHandler) Update(c *gin.Context) {
 		return
 	}
 	
-	// Return the updated appointment object
 	c.JSON(http.StatusOK, existing)
 }
 
 func (h *AppointmentsHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	
-	// Get the appointment first
 	appointment, err := h.repo.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "appointment not found"})
 		return
 	}
 	
-	// Set DeletedAt to current time (soft delete)
 	now := utils.Now()
 	appointment.DeletedAt = &now
 	
-	// Update the appointment with DeletedAt set
 	if err := h.repo.Update(c.Request.Context(), id, appointment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -167,7 +157,6 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 		return
 	}
 
-	// Default to UTC if no offset provided
 	loc := time.UTC
 	if tzOffsetStr != "" {
 		offset, err := strconv.Atoi(tzOffsetStr)
@@ -192,7 +181,6 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 		return
 	}
 
-	// Select first provider as default for single-tenant assumption
 	providers, err := h.providersRepo.List(c.Request.Context(), 1, 0)
 	if err != nil || len(providers) == 0 {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "no providers available"})
@@ -234,7 +222,6 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 	}
 	busySlots := []timeRange{}
 
-	// Pre-fetch all services to get durations
 	allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0)
 	serviceDurations := make(map[string]int)
 	for _, s := range allServices {
@@ -273,7 +260,6 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 
 			isBusy := false
 			for _, busy := range busySlots {
-				// Overlap if (StartA < EndB) and (EndA > StartB)
 				if currentSlot.Before(busy.End) && slotEnd.After(busy.Start) {
 					isBusy = true
 					break
@@ -288,7 +274,6 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 		}
 	}
 
-	// Ensure returning empty array instead of null for JSON serialization
 	if availableSlots == nil {
 		availableSlots = []string{}
 	}

@@ -34,7 +34,6 @@ func (h *SchedulesHandler) GetByProvider(c *gin.Context) {
 	}
 
 	if schedule == nil {
-		// Return empty schedule structure if not found
 		c.JSON(http.StatusOK, domain.Schedule{
 			ProviderId: providerID,
 			Type:       domain.ScheduleType(scheduleType),
