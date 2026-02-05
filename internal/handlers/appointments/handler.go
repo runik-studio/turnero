@@ -193,7 +193,7 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 	}
 
 	for _, appt := range appointments {
-		dur := serviceDurations[appt.Service]
+		dur := serviceDurations[appt.ServiceId]
 		if dur == 0 {
 			dur = 60
 		}

@@ -22,7 +22,7 @@ func (r *SchedulesRepository) GetByProvider(ctx context.Context, providerID stri
 	// Query for schedule with matching provider_id and type
 	iter := r.client.client.Collection("schedules").
 		Where("ProviderId", "==", providerID).
-		Where("type", "==", scheduleType).
+		Where("Type", "==", scheduleType).
 		Limit(1).
 		Documents(ctx)
 

@@ -15,12 +15,6 @@ type Appointments struct {
 	ScheduledAt time.Time `json:"scheduled_at" firestore:"ScheduledAt"`
 
 	Status string `json:"status" firestore:"Status"`
-
-	Provider string `json:"provider" firestore:"Provider"`
-
-	Service string `json:"service" firestore:"Service"`
-
-	User string `json:"user" firestore:"User"`
 }
 
 type AppointmentsRepository interface {
