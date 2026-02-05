@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 )
 
 type Providers struct {
@@ -16,6 +17,9 @@ type Providers struct {
 	EstablishmentName string `json:"establishment_name" firestore:"EstablishmentName"`
 
 	Phone string `json:"phone" firestore:"Phone"`
+
+	CreatedAt time.Time `json:"created_at" firestore:"CreatedAt"`
+	UpdatedAt time.Time `json:"updated_at" firestore:"UpdatedAt"`
 }
 
 type DaySchedule struct {

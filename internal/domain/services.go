@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 )
 
 type Services struct {
@@ -20,6 +21,9 @@ type Services struct {
 	Color string `json:"color" firestore:"Color"`
 
 	Title string `json:"title" firestore:"Title"`
+
+	CreatedAt time.Time `json:"created_at" firestore:"CreatedAt"`
+	UpdatedAt time.Time `json:"updated_at" firestore:"UpdatedAt"`
 }
 
 type ServicesRepository interface {

@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"errors"
-	"time"
 
 	"ServiceBookingApp/internal/domain"
 	"cloud.google.com/go/firestore"
@@ -67,11 +66,11 @@ func (r *SchedulesRepository) Upsert(ctx context.Context, schedule *domain.Sched
 			// Create new
 			docRef = collection.NewDoc()
 			schedule.ID = docRef.ID
-			schedule.CreatedAt = time.Now()
+			schedule.CreatedAt = getNow()
 		}
 	}
 
-	schedule.UpdatedAt = time.Now()
+	schedule.UpdatedAt = getNow()
 
 	_, err := docRef.Set(ctx, schedule)
 	return err

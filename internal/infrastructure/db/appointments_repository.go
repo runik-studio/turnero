@@ -10,6 +10,12 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+// getNow returns current time in UTC-3 timezone
+func getNow() time.Time {
+	loc := time.FixedZone("UTC-3", -3*60*60)
+	return time.Now().In(loc)
+}
+
 type AppointmentsRepository struct {
 	client *FirestoreRepository
 }
@@ -95,6 +101,9 @@ func (r *AppointmentsRepository) Get(ctx context.Context, id string) (*domain.Ap
 }
 
 func (r *AppointmentsRepository) Create(ctx context.Context, model *domain.Appointments) (string, error) {
+	now := getNow()
+	model.CreatedAt = now
+	model.UpdatedAt = now
 	ref, _, err := r.client.client.Collection("appointments").Add(ctx, model)
 	if err != nil {
 		return "", err
@@ -103,6 +112,7 @@ func (r *AppointmentsRepository) Create(ctx context.Context, model *domain.Appoi
 }
 
 func (r *AppointmentsRepository) Update(ctx context.Context, id string, m *domain.Appointments) error {
+	m.UpdatedAt = getNow()
 	_, err := r.client.client.Collection("appointments").Doc(id).Set(ctx, m)
 	return err
 }
