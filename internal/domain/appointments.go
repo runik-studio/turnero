@@ -16,8 +16,9 @@ type Appointments struct {
 
 	Status string `json:"status" firestore:"Status"`
 
-	CreatedAt time.Time `json:"created_at" firestore:"CreatedAt"`
-	UpdatedAt time.Time `json:"updated_at" firestore:"UpdatedAt"`
+	CreatedAt time.Time  `json:"created_at" firestore:"CreatedAt"`
+	UpdatedAt time.Time  `json:"updated_at" firestore:"UpdatedAt"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty" firestore:"DeletedAt,omitempty"`
 }
 
 type AppointmentsRepository interface {

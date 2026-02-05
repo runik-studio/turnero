@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"ServiceBookingApp/internal/domain"
+	"ServiceBookingApp/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -65,23 +66,66 @@ func (h *ProvidersHandler) Create(c *gin.Context) {
 
 func (h *ProvidersHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	var m domain.Providers
-	if err := c.ShouldBindJSON(&m); err != nil {
+	
+	// Get the existing provider first
+	existing, err := h.repo.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "provider not found"})
+		return
+	}
+	
+	// Parse the update request
+	var updates domain.Providers
+	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.repo.Update(c.Request.Context(), id, &m); err != nil {
+	
+	// Update only the fields that are provided (non-zero values)
+	if updates.Phone != "" {
+		existing.Phone = updates.Phone
+	}
+	if updates.Address != "" {
+		existing.Address = updates.Address
+	}
+	if updates.AvatarUrl != "" {
+		existing.AvatarUrl = updates.AvatarUrl
+	}
+	if updates.EstablishmentName != "" {
+		existing.EstablishmentName = updates.EstablishmentName
+	}
+	
+	// Update UpdatedAt timestamp
+	existing.UpdatedAt = utils.Now()
+	
+	if err := h.repo.Update(c.Request.Context(), id, existing); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+	
+	// Return the updated provider object
+	c.JSON(http.StatusOK, existing)
 }
 
 func (h *ProvidersHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.repo.Delete(c.Request.Context(), id); err != nil {
+	
+	// Get the provider first
+	provider, err := h.repo.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "provider not found"})
+		return
+	}
+	
+	// Set DeletedAt to current time (soft delete)
+	now := utils.Now()
+	provider.DeletedAt = &now
+	
+	// Update the provider with DeletedAt set
+	if err := h.repo.Update(c.Request.Context(), id, provider); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }

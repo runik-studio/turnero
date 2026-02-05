@@ -4,6 +4,7 @@ import (
 	"context"
 	
 	"ServiceBookingApp/internal/domain"
+	"ServiceBookingApp/internal/utils"
 	"google.golang.org/api/iterator"
 )
 
@@ -53,7 +54,7 @@ func (r *ProvidersRepository) Get(ctx context.Context, id string) (*domain.Provi
 }
 
 func (r *ProvidersRepository) Create(ctx context.Context, model *domain.Providers) (string, error) {
-	now := getNow()
+	now := utils.Now()
 	model.CreatedAt = now
 	model.UpdatedAt = now
 	ref, _, err := r.client.client.Collection("providers").Add(ctx, model)
@@ -66,7 +67,7 @@ func (r *ProvidersRepository) Create(ctx context.Context, model *domain.Provider
 
 
 func (r *ProvidersRepository) Update(ctx context.Context, id string, m *domain.Providers) error {
-	m.UpdatedAt = getNow()
+	m.UpdatedAt = utils.Now()
 	_, err := r.client.client.Collection("providers").Doc(id).Set(ctx, m)
 	return err
 }

@@ -5,16 +5,11 @@ import (
 	"time"
 
 	"ServiceBookingApp/internal/domain"
+	"ServiceBookingApp/internal/utils"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
 )
-
-// getNow returns current time in UTC-3 timezone
-func getNow() time.Time {
-	loc := time.FixedZone("UTC-3", -3*60*60)
-	return time.Now().In(loc)
-}
 
 type AppointmentsRepository struct {
 	client *FirestoreRepository
@@ -56,7 +51,7 @@ func (r *AppointmentsRepository) ListByDate(ctx context.Context, date time.Time)
 
 func (r *AppointmentsRepository) List(ctx context.Context, limit, offset int, filterType string) ([]*domain.Appointments, error) {
 	query := r.client.client.Collection("appointments").Query
-	now := time.Now()
+	now := utils.Now()
 
 	if filterType == "upcoming" {
 		query = query.Where("ScheduledAt", ">=", now).OrderBy("ScheduledAt", firestore.Asc)
@@ -101,7 +96,7 @@ func (r *AppointmentsRepository) Get(ctx context.Context, id string) (*domain.Ap
 }
 
 func (r *AppointmentsRepository) Create(ctx context.Context, model *domain.Appointments) (string, error) {
-	now := getNow()
+	now := utils.Now()
 	model.CreatedAt = now
 	model.UpdatedAt = now
 	ref, _, err := r.client.client.Collection("appointments").Add(ctx, model)
@@ -112,7 +107,7 @@ func (r *AppointmentsRepository) Create(ctx context.Context, model *domain.Appoi
 }
 
 func (r *AppointmentsRepository) Update(ctx context.Context, id string, m *domain.Appointments) error {
-	m.UpdatedAt = getNow()
+	m.UpdatedAt = utils.Now()
 	_, err := r.client.client.Collection("appointments").Doc(id).Set(ctx, m)
 	return err
 }

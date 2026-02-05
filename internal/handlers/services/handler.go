@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"ServiceBookingApp/internal/domain"
+	"ServiceBookingApp/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -65,23 +66,72 @@ func (h *ServicesHandler) Create(c *gin.Context) {
 
 func (h *ServicesHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	var m domain.Services
-	if err := c.ShouldBindJSON(&m); err != nil {
+	
+	// Get the existing service first
+	existing, err := h.repo.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "service not found"})
+		return
+	}
+	
+	// Parse the update request
+	var updates domain.Services
+	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.repo.Update(c.Request.Context(), id, &m); err != nil {
+	
+	// Update only the fields that are provided (non-zero values)
+	if updates.Title != "" {
+		existing.Title = updates.Title
+	}
+	if updates.Description != nil {
+		existing.Description = updates.Description
+	}
+	if updates.DurationMinutes != 0 {
+		existing.DurationMinutes = updates.DurationMinutes
+	}
+	if updates.Price != 0 {
+		existing.Price = updates.Price
+	}
+	if updates.IconUrl != "" {
+		existing.IconUrl = updates.IconUrl
+	}
+	if updates.Color != "" {
+		existing.Color = updates.Color
+	}
+	
+	// Update UpdatedAt timestamp
+	existing.UpdatedAt = utils.Now()
+	
+	if err := h.repo.Update(c.Request.Context(), id, existing); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+	
+	// Return the updated service object
+	c.JSON(http.StatusOK, existing)
 }
 
 func (h *ServicesHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.repo.Delete(c.Request.Context(), id); err != nil {
+	
+	// Get the service first
+	service, err := h.repo.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "service not found"})
+		return
+	}
+	
+	// Set DeletedAt to current time (soft delete)
+	now := utils.Now()
+	service.DeletedAt = &now
+	
+	// Update the service with DeletedAt set
+	if err := h.repo.Update(c.Request.Context(), id, service); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }

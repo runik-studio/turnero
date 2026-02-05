@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"ServiceBookingApp/internal/domain"
+	"ServiceBookingApp/internal/utils"
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
 )
@@ -66,11 +67,11 @@ func (r *SchedulesRepository) Upsert(ctx context.Context, schedule *domain.Sched
 			// Create new
 			docRef = collection.NewDoc()
 			schedule.ID = docRef.ID
-			schedule.CreatedAt = getNow()
+			schedule.CreatedAt = utils.Now()
 		}
 	}
 
-	schedule.UpdatedAt = getNow()
+	schedule.UpdatedAt = utils.Now()
 
 	_, err := docRef.Set(ctx, schedule)
 	return err

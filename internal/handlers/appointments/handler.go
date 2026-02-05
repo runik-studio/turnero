@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"ServiceBookingApp/internal/domain"
+	"ServiceBookingApp/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -76,6 +77,14 @@ func (h *AppointmentsHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Validate that the appointment is not in the past
+	now := utils.Now()
+	if m.ScheduledAt.Before(now) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot create appointment in the past"})
+		return
+	}
+
 	id, err := h.repo.Create(c.Request.Context(), &m)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -87,24 +96,64 @@ func (h *AppointmentsHandler) Create(c *gin.Context) {
 
 func (h *AppointmentsHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	var m domain.Appointments
-	if err := c.ShouldBindJSON(&m); err != nil {
+	
+	// Get the existing appointment first
+	existing, err := h.repo.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "appointment not found"})
+		return
+	}
+	
+	// Parse the update request
+	var updates domain.Appointments
+	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.repo.Update(c.Request.Context(), id, &m); err != nil {
+	
+	// Only update the Status field (the main use case for Update)
+	if updates.Status != "" {
+		existing.Status = updates.Status
+		
+		// If status is being set to cancelled, also set DeletedAt (soft delete)
+		if updates.Status == "cancelled" {
+			now := utils.Now()
+			existing.DeletedAt = &now
+		}
+	}
+	
+	// Update UpdatedAt timestamp
+	existing.UpdatedAt = utils.Now()
+	
+	if err := h.repo.Update(c.Request.Context(), id, existing); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+	
+	// Return the updated appointment object
+	c.JSON(http.StatusOK, existing)
 }
 
 func (h *AppointmentsHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.repo.Delete(c.Request.Context(), id); err != nil {
+	
+	// Get the appointment first
+	appointment, err := h.repo.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "appointment not found"})
+		return
+	}
+	
+	// Set DeletedAt to current time (soft delete)
+	now := utils.Now()
+	appointment.DeletedAt = &now
+	
+	// Update the appointment with DeletedAt set
+	if err := h.repo.Update(c.Request.Context(), id, appointment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
 

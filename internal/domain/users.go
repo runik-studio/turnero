@@ -18,7 +18,8 @@ type Users struct {
 
 	RoleId string `json:"role_id" bson:"role_id" firestore:"RoleId"`
 
-	UpdatedAt time.Time `json:"updated_at" bson:"updated_at" firestore:"UpdatedAt"`
+	UpdatedAt time.Time  `json:"updated_at" bson:"updated_at" firestore:"UpdatedAt"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty" bson:"deleted_at,omitempty" firestore:"DeletedAt,omitempty"`
 }
 
 type UsersRepository interface {
