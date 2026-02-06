@@ -124,6 +124,11 @@ func (h *AppointmentsHandler) Create(c *gin.Context) {
 		return
 	}
 	m.ProviderId = service.ProviderId
+	m.ServiceName = service.Title
+	m.DurationMinutes = service.DurationMinutes
+	if m.DurationMinutes == 0 {
+		m.DurationMinutes = 30
+	}
 
 	now := utils.Now()
 	if m.ScheduledAt.Before(now.Add(-5 * time.Minute)) {
@@ -262,16 +267,22 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 	}
 	busySlots := []timeRange{}
 
-	allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0, providerId)
-	serviceDurations := make(map[string]int)
-	for _, s := range allServices {
-		serviceDurations[s.ID] = s.DurationMinutes
-	}
+	var serviceDestinations map[string]int
 
 	for _, appt := range appointments {
-		dur := serviceDurations[appt.ServiceId]
+		dur := appt.DurationMinutes
 		if dur == 0 {
-			dur = 60
+			if serviceDestinations == nil {
+				allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0, providerId)
+				serviceDestinations = make(map[string]int)
+				for _, s := range allServices {
+					serviceDestinations[s.ID] = s.DurationMinutes
+				}
+			}
+			dur = serviceDestinations[appt.ServiceId]
+			if dur == 0 {
+				dur = 60
+			}
 		}
 		end := appt.ScheduledAt.Add(time.Duration(dur) * time.Minute)
 		busySlots = append(busySlots, timeRange{Start: appt.ScheduledAt, End: end})

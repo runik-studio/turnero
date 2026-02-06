@@ -15,6 +15,9 @@ type Appointments struct {
 
 	ScheduledAt time.Time `json:"scheduled_at" firestore:"ScheduledAt"`
 
+	DurationMinutes int `json:"duration_minutes" firestore:"DurationMinutes"`
+	ServiceName string `json:"service_name" firestore:"ServiceName"`
+
 	Status string `json:"status" firestore:"Status"`
 
 	CreatedAt time.Time  `json:"created_at" firestore:"CreatedAt"`

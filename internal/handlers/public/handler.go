@@ -35,6 +35,8 @@ func (h *PublicHandler) GetServices(c *gin.Context) {
 		return
 	}
 
+	c.Header("Cache-Control", "public, max-age=300")
+
 	services, err := h.servicesRepo.List(c.Request.Context(), 100, 0, providerId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -54,7 +56,6 @@ func (h *PublicHandler) GetAvailableSlots(c *gin.Context) {
 		return
 	}
 
-	// Verify service belongs to provider
 	service, err := h.servicesRepo.Get(c.Request.Context(), serviceID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "service not found"})
@@ -104,7 +105,6 @@ func (h *PublicHandler) GetAvailableSlots(c *gin.Context) {
 		return
 	}
 
-	// Fetch all appointments for the day to check availability
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, loc)
 	appointments, err := h.appointmentsRepo.ListByDate(c.Request.Context(), startOfDay, providerId)
 	if err != nil {
@@ -118,16 +118,22 @@ func (h *PublicHandler) GetAvailableSlots(c *gin.Context) {
 	}
 	busySlots := []timeRange{}
 
-	allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0, providerId)
-	serviceDurations := make(map[string]int)
-	for _, s := range allServices {
-		serviceDurations[s.ID] = s.DurationMinutes
-	}
+	var serviceDestinations map[string]int
 
 	for _, appt := range appointments {
-		dur := serviceDurations[appt.ServiceId]
+		dur := appt.DurationMinutes
 		if dur == 0 {
-			dur = 60
+			if serviceDestinations == nil {
+				allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0, providerId)
+				serviceDestinations = make(map[string]int)
+				for _, s := range allServices {
+					serviceDestinations[s.ID] = s.DurationMinutes
+				}
+			}
+			dur = serviceDestinations[appt.ServiceId]
+			if dur == 0 {
+				dur = 60
+			}
 		}
 		end := appt.ScheduledAt.Add(time.Duration(dur) * time.Minute)
 		busySlots = append(busySlots, timeRange{Start: appt.ScheduledAt, End: end})
@@ -156,7 +162,6 @@ func (h *PublicHandler) GetAvailableSlots(c *gin.Context) {
 
 			isBusy := false
 			for _, busy := range busySlots {
-				// Check for overlap
 				if currentSlot.Before(busy.End) && slotEnd.After(busy.Start) {
 					isBusy = true
 					break
@@ -192,7 +197,6 @@ func (h *PublicHandler) CreateAppointment(c *gin.Context) {
 	}
 
 	m.ProviderId = providerId
-	// Verify service
 	if m.ServiceId == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "service_id is required"})
 		return
@@ -207,16 +211,18 @@ func (h *PublicHandler) CreateAppointment(c *gin.Context) {
 		return
 	}
 
+	m.DurationMinutes = service.DurationMinutes
+	if m.DurationMinutes == 0 {
+		m.DurationMinutes = 30
+	}
+	m.ServiceName = service.Title
+
 	now := utils.Now()
-	// Allow creating slightly in the past (e.g. 5 minutes ago) to account for clock skew/delays?
-	// But mostly future.
 	if m.ScheduledAt.Before(now.Add(-5 * time.Minute)) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot create appointment in the past"})
 		return
 	}
 
-	// Prevent duplicates / Overlap check
-	// ListByDate fetches for the whole day.
 	date := m.ScheduledAt
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, waitingLocation(date.Location()))
 	
@@ -227,35 +233,29 @@ func (h *PublicHandler) CreateAppointment(c *gin.Context) {
 	}
 
 	newApptStart := m.ScheduledAt
-	dur := service.DurationMinutes
-	if dur == 0 {
-		dur = 30
-	}
-	newApptEnd := newApptStart.Add(time.Duration(dur) * time.Minute)
+	newApptEnd := newApptStart.Add(time.Duration(m.DurationMinutes) * time.Minute)
 
-	// We need durations of other appointments to check overlap correctly
-	// Optimization: we could cache or just fetch all services once outside
-	// Ideally we already have them if we want to be super precise or just fetch them if needed.
-	// For now, let's fetch all services for the provider again or optimize?
-	// Let's optimize: fetch list of services only if we haven't already?
-	// Actually, fetching all services is okay since providers don't have thousands.
-	
-	allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0, providerId)
-	serviceDurations := make(map[string]int)
-	for _, s := range allServices {
-		serviceDurations[s.ID] = s.DurationMinutes
-	}
+	var serviceDestinations map[string]int
 
 	for _, existing := range appointments {
-		existingDur := serviceDurations[existing.ServiceId]
+		existingDur := existing.DurationMinutes
 		if existingDur == 0 {
-			existingDur = 60 // Default or unknown
+			if serviceDestinations == nil {
+				allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0, providerId)
+				serviceDestinations = make(map[string]int)
+				for _, s := range allServices {
+					serviceDestinations[s.ID] = s.DurationMinutes
+				}
+			}
+			existingDur = serviceDestinations[existing.ServiceId]
+			if existingDur == 0 {
+				existingDur = 60
+			}
 		}
+
 		existingStart := existing.ScheduledAt
 		existingEnd := existingStart.Add(time.Duration(existingDur) * time.Minute)
 
-		// Check overlap
-		// (StartA < EndB) and (EndA > StartB)
 		if newApptStart.Before(existingEnd) && newApptEnd.After(existingStart) {
 			c.JSON(http.StatusConflict, gin.H{"error": "time slot is already booked"})
 			return
