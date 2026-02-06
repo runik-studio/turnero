@@ -16,8 +16,12 @@ func NewServicesRepository(client *FirestoreRepository) *ServicesRepository {
 	return &ServicesRepository{client: client}
 }
 
-func (r *ServicesRepository) List(ctx context.Context, limit, offset int) ([]*domain.Services, error) {
-	iter := r.client.client.Collection("services").Offset(offset).Limit(limit).Documents(ctx)
+func (r *ServicesRepository) List(ctx context.Context, limit, offset int, providerId string) ([]*domain.Services, error) {
+	query := r.client.client.Collection("services").Query
+	if providerId != "" {
+		query = query.Where("ProviderId", "==", providerId)
+	}
+	iter := query.Offset(offset).Limit(limit).Documents(ctx)
 	var results []*domain.Services
 	for {
 		doc, err := iter.Next()

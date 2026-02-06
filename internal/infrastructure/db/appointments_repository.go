@@ -19,14 +19,19 @@ func NewAppointmentsRepository(client *FirestoreRepository) *AppointmentsReposit
 	return &AppointmentsRepository{client: client}
 }
 
-func (r *AppointmentsRepository) ListByDate(ctx context.Context, date time.Time) ([]*domain.Appointments, error) {
+func (r *AppointmentsRepository) ListByDate(ctx context.Context, date time.Time, providerId string) ([]*domain.Appointments, error) {
 	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	endOfDay := startOfDay.Add(24 * time.Hour)
 
-	iter := r.client.client.Collection("appointments").
+	query := r.client.client.Collection("appointments").
 		Where("ScheduledAt", ">=", startOfDay).
-		Where("ScheduledAt", "<", endOfDay).
-		Documents(ctx)
+		Where("ScheduledAt", "<", endOfDay)
+
+	if providerId != "" {
+		query = query.Where("ProviderId", "==", providerId)
+	}
+
+	iter := query.Documents(ctx)
 
 	var results []*domain.Appointments
 	for {
@@ -47,9 +52,13 @@ func (r *AppointmentsRepository) ListByDate(ctx context.Context, date time.Time)
 	return results, nil
 }
 
-func (r *AppointmentsRepository) List(ctx context.Context, limit, offset int, filterType string) ([]*domain.Appointments, error) {
+func (r *AppointmentsRepository) List(ctx context.Context, limit, offset int, filterType string, providerId string) ([]*domain.Appointments, error) {
 	query := r.client.client.Collection("appointments").Query
 	now := utils.Now()
+
+	if providerId != "" {
+		query = query.Where("ProviderId", "==", providerId)
+	}
 
 	if filterType == "upcoming" {
 		query = query.Where("ScheduledAt", ">=", now).OrderBy("ScheduledAt", firestore.Asc)

@@ -9,6 +9,7 @@ import (
 	"ServiceBookingApp/internal/domain"
 	"ServiceBookingApp/internal/utils"
 
+	"firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,7 +29,41 @@ func NewAppointmentsHandler(repo domain.AppointmentsRepository, servicesRepo dom
 	}
 }
 
+func (h *AppointmentsHandler) getProviderID(c *gin.Context) (string, error) {
+	u, exists := c.Get("user")
+	if !exists {
+		return "", fmt.Errorf("user not found in context")
+	}
+	token := u.(*auth.Token)
+	
+	provider, err := h.providersRepo.GetByUserId(c.Request.Context(), token.UID)
+	if err != nil {
+		return "", err
+	}
+	if provider == nil {
+		return "", fmt.Errorf("user is not a provider")
+	}
+	return provider.ID, nil
+}
+
 func (h *AppointmentsHandler) List(c *gin.Context) {
+	reqProviderId := c.Query("provider_id")
+	if reqProviderId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "provider_id is required"})
+		return
+	}
+
+	providerId, err := h.getProviderID(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "must be a provider to list appointments"})
+		return
+	}
+
+	if reqProviderId != providerId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "cannot view appointments of another provider"})
+		return
+	}
+
 	limit := 20
 	if l := c.Query("limit"); l != "" {
 		if val, err := strconv.Atoi(l); err == nil && val > 0 {
@@ -53,7 +88,7 @@ func (h *AppointmentsHandler) List(c *gin.Context) {
 
 	filterType := c.Query("type")
 
-	results, err := h.repo.List(c.Request.Context(), limit, offset, filterType)
+	results, err := h.repo.List(c.Request.Context(), limit, offset, filterType, providerId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -78,8 +113,20 @@ func (h *AppointmentsHandler) Create(c *gin.Context) {
 		return
 	}
 
+	if m.ServiceId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "service_id is required"})
+		return
+	}
+
+	service, err := h.servicesRepo.Get(c.Request.Context(), m.ServiceId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid service_id"})
+		return
+	}
+	m.ProviderId = service.ProviderId
+
 	now := utils.Now()
-	if m.ScheduledAt.Before(now) {
+	if m.ScheduledAt.Before(now.Add(-5 * time.Minute)) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot create appointment in the past"})
 		return
 	}
@@ -180,15 +227,9 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "service not found"})
 		return
 	}
+	providerId := service.ProviderId
 
-	providers, err := h.providersRepo.List(c.Request.Context(), 1, 0)
-	if err != nil || len(providers) == 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "no providers available"})
-		return
-	}
-	provider := providers[0]
-
-	schedule, err := h.schedulesRepo.GetByProvider(c.Request.Context(), provider.ID, domain.ScheduleTypeGlobal)
+	schedule, err := h.schedulesRepo.GetByProvider(c.Request.Context(), providerId, domain.ScheduleTypeGlobal)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch schedule"})
 		return
@@ -209,8 +250,7 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 		return
 	}
 
-	appointments, err := h.repo.ListByDate(c.Request.Context(), date)
-
+	appointments, err := h.repo.ListByDate(c.Request.Context(), date, providerId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -222,7 +262,7 @@ func (h *AppointmentsHandler) GetAvailableSlots(c *gin.Context) {
 	}
 	busySlots := []timeRange{}
 
-	allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0)
+	allServices, _ := h.servicesRepo.List(c.Request.Context(), 100, 0, providerId)
 	serviceDurations := make(map[string]int)
 	for _, s := range allServices {
 		serviceDurations[s.ID] = s.DurationMinutes

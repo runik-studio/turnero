@@ -89,8 +89,9 @@ func main() {
 	{
 
 		repo := db.NewServicesRepository(baseRepo.(*db.FirestoreRepository))
+		providersRepo := db.NewProvidersRepository(baseRepo.(*db.FirestoreRepository))
 
-		handler := services.NewServicesHandler(repo)
+		handler := services.NewServicesHandler(repo, providersRepo)
 
 		group := r.Group("/api/services")
 
@@ -146,7 +147,8 @@ func main() {
 	// Routes for schedules
 	{
 		repo := db.NewSchedulesRepository(baseRepo.(*db.FirestoreRepository))
-		handler := schedules.NewSchedulesHandler(repo)
+		providersRepo := db.NewProvidersRepository(baseRepo.(*db.FirestoreRepository))
+		handler := schedules.NewSchedulesHandler(repo, providersRepo)
 		group := r.Group("/api/schedules")
 		group.Use(authService.AuthMiddleware(authSvc))
 

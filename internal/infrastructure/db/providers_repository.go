@@ -50,6 +50,23 @@ func (r *ProvidersRepository) Get(ctx context.Context, id string) (*domain.Provi
 	return &m, nil
 }
 
+func (r *ProvidersRepository) GetByUserId(ctx context.Context, userId string) (*domain.Providers, error) {
+	iter := r.client.client.Collection("providers").Where("UserId", "==", userId).Limit(1).Documents(ctx)
+	doc, err := iter.Next()
+	if err == iterator.Done {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var m domain.Providers
+	if err := doc.DataTo(&m); err != nil {
+		return nil, err
+	}
+	m.ID = doc.Ref.ID
+	return &m, nil
+}
+
 func (r *ProvidersRepository) Create(ctx context.Context, model *domain.Providers) (string, error) {
 	now := utils.Now()
 	model.CreatedAt = now

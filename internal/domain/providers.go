@@ -36,6 +36,7 @@ type TimeRange struct {
 type ProvidersRepository interface {
 	List(ctx context.Context, limit, offset int) ([]*Providers, error)
 	Get(ctx context.Context, id string) (*Providers, error)
+	GetByUserId(ctx context.Context, userId string) (*Providers, error)
 	Create(ctx context.Context, model *Providers) (string, error)
 	Update(ctx context.Context, id string, model *Providers) error
 	Delete(ctx context.Context, id string) error

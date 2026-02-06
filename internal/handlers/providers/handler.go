@@ -2,9 +2,11 @@ package providers
 
 import (
 	"net/http"
-	"strconv"
+
 	"ServiceBookingApp/internal/domain"
 	"ServiceBookingApp/internal/utils"
+
+	"firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,24 +19,22 @@ func NewProvidersHandler(repo domain.ProvidersRepository) *ProvidersHandler {
 }
 
 func (h *ProvidersHandler) List(c *gin.Context) {
-	limit := 20
-	if l := c.Query("limit"); l != "" {
-		if val, err := strconv.Atoi(l); err == nil && val > 0 {
-			limit = val
-		}
+	u, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
 	}
-	page := 1
-	if p := c.Query("page"); p != "" {
-		if val, err := strconv.Atoi(p); err == nil && val > 0 {
-			page = val
-		}
-	}
-	offset := (page - 1) * limit
+	token := u.(*auth.Token)
 
-	results, err := h.repo.List(c.Request.Context(), limit, offset)
+	provider, err := h.repo.GetByUserId(c.Request.Context(), token.UID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	results := []*domain.Providers{}
+	if provider != nil {
+		results = append(results, provider)
 	}
 	c.JSON(http.StatusOK, results)
 }
@@ -50,11 +50,31 @@ func (h *ProvidersHandler) Get(c *gin.Context) {
 }
 
 func (h *ProvidersHandler) Create(c *gin.Context) {
+	u, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	token := u.(*auth.Token)
+
+	existing, err := h.repo.GetByUserId(c.Request.Context(), token.UID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if existing != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "user already has a provider"})
+		return
+	}
+
 	var m domain.Providers
 	if err := c.ShouldBindJSON(&m); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	m.UserId = token.UID
+
 	id, err := h.repo.Create(c.Request.Context(), &m)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -70,6 +90,17 @@ func (h *ProvidersHandler) Update(c *gin.Context) {
 	existing, err := h.repo.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "provider not found"})
+		return
+	}
+	
+	u, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	token := u.(*auth.Token)
+	if existing.UserId != token.UID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 	
@@ -108,6 +139,17 @@ func (h *ProvidersHandler) Delete(c *gin.Context) {
 	provider, err := h.repo.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "provider not found"})
+		return
+	}
+
+	u, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	token := u.(*auth.Token)
+	if provider.UserId != token.UID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
 	

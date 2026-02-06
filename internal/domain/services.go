@@ -28,7 +28,7 @@ type Services struct {
 }
 
 type ServicesRepository interface {
-	List(ctx context.Context, limit, offset int) ([]*Services, error)
+	List(ctx context.Context, limit, offset int, providerId string) ([]*Services, error)
 	Get(ctx context.Context, id string) (*Services, error)
 	Create(ctx context.Context, model *Services) (string, error)
 	Update(ctx context.Context, id string, model *Services) error
