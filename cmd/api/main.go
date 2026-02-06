@@ -27,6 +27,8 @@ import (
 	"ServiceBookingApp/internal/handlers/schedules"
 
 	"ServiceBookingApp/internal/handlers/users"
+
+	"ServiceBookingApp/internal/handlers/public"
 )
 
 func main() {
@@ -172,6 +174,22 @@ func main() {
 		group.POST("", handler.Create)
 		group.PUT("/:id", handler.Update)
 		group.DELETE("/:id", handler.Delete)
+	}
+
+	// Routes for public widget
+	{
+		repo := db.NewAppointmentsRepository(baseRepo.(*db.FirestoreRepository))
+		servicesRepo := db.NewServicesRepository(baseRepo.(*db.FirestoreRepository))
+		providersRepo := db.NewProvidersRepository(baseRepo.(*db.FirestoreRepository))
+		schedulesRepo := db.NewSchedulesRepository(baseRepo.(*db.FirestoreRepository))
+
+		handler := public.NewPublicHandler(servicesRepo, schedulesRepo, repo, providersRepo)
+
+		group := r.Group("/public/providers/:provider_id")
+
+		group.GET("/services", handler.GetServices)
+		group.GET("/slots", handler.GetAvailableSlots)
+		group.POST("/appointments", handler.CreateAppointment)
 	}
 
 	port := os.Getenv("PORT")
