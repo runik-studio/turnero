@@ -18,6 +18,8 @@ type Users struct {
 
 	RoleId string `json:"role_id" bson:"role_id" firestore:"RoleId"`
 
+	IsActive *bool `json:"is_active,omitempty" bson:"is_active,omitempty" firestore:"IsActive,omitempty"`
+
 	UpdatedAt time.Time  `json:"updated_at" bson:"updated_at" firestore:"UpdatedAt"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty" bson:"deleted_at,omitempty" firestore:"DeletedAt,omitempty"`
 }

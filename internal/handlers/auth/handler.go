@@ -82,13 +82,19 @@ func (h *UserHandler) Login(c *gin.Context) {
 			roleId = req.Role
 		}
 		data.RoleId = roleId
+		isActive := false
+		data.IsActive = &isActive
 
 		// Note: Simplified settings creation for this template
 		// In a real scenario, you'd have a SettingsRepository
-	}
-
-	if !isNewUser && req.Role != "" {
-		data.RoleId = req.Role
+	} else {
+		if docSnap != nil {
+			data.IsActive = docSnap.IsActive
+			data.RoleId = docSnap.RoleId
+		}
+		if req.Role != "" {
+			data.RoleId = req.Role
+		}
 	}
 
 	// Use Update for Upsert behavior

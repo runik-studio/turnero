@@ -98,6 +98,7 @@ func main() {
 		group := r.Group("/api/services")
 
 		group.Use(authService.AuthMiddleware(authSvc))
+		group.Use(authService.UserActiveMiddleware(userRepo))
 
 		group.GET("", handler.List)
 		group.GET("/:id", handler.Get)
@@ -116,6 +117,7 @@ func main() {
 		group := r.Group("/api/providers")
 
 		group.Use(authService.AuthMiddleware(authSvc))
+		group.Use(authService.UserActiveMiddleware(userRepo))
 
 		group.GET("", handler.List)
 		group.GET("/:id", handler.Get)
@@ -136,6 +138,7 @@ func main() {
 		group := r.Group("/api/appointments")
 
 		group.Use(authService.AuthMiddleware(authSvc))
+		group.Use(authService.UserActiveMiddleware(userRepo))
 
 		group.GET("", handler.List)
 		group.GET("/:id", handler.Get)
@@ -143,7 +146,7 @@ func main() {
 		group.PUT("/:id", handler.Update)
 		group.DELETE("/:id", handler.Delete)
 
-		r.GET("/api/slots", authService.AuthMiddleware(authSvc), handler.GetAvailableSlots)
+		r.GET("/api/slots", authService.AuthMiddleware(authSvc), authService.UserActiveMiddleware(userRepo), handler.GetAvailableSlots)
 	}
 
 	// Routes for schedules
@@ -153,6 +156,7 @@ func main() {
 		handler := schedules.NewSchedulesHandler(repo, providersRepo)
 		group := r.Group("/api/schedules")
 		group.Use(authService.AuthMiddleware(authSvc))
+		group.Use(authService.UserActiveMiddleware(userRepo))
 
 		group.GET("", handler.GetByProvider)
 		group.PUT("", handler.Upsert)
@@ -169,9 +173,12 @@ func main() {
 
 		group.Use(authService.AuthMiddleware(authSvc))
 
+		group.POST("", handler.Create)
+
+		group.Use(authService.UserActiveMiddleware(userRepo))
+
 		group.GET("", handler.List)
 		group.GET("/:id", handler.Get)
-		group.POST("", handler.Create)
 		group.PUT("/:id", handler.Update)
 		group.DELETE("/:id", handler.Delete)
 	}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"ServiceBookingApp/internal/domain"
 	"firebase.google.com/go/v4/auth"
 	"github.com/gin-gonic/gin"
 )
@@ -83,6 +84,37 @@ func AuthMiddleware(service AuthService) gin.HandlerFunc {
 
 		// Store user info in context
 		c.Set("user", token)
+		c.Next()
+	}
+}
+
+func UserActiveMiddleware(repo domain.UsersRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userTokenInterface, exists := c.Get("user")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
+			return
+		}
+
+		userToken, ok := userTokenInterface.(*auth.Token)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Invalid user token type"})
+			return
+		}
+		uid := userToken.UID
+
+		user, err := repo.Get(c.Request.Context(), uid)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "User profile not found or access denied"})
+			return
+		}
+
+		if user.IsActive != nil && !*user.IsActive {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Account is blocked"})
+			return
+		}
+
+		c.Set("user_data", user)
 		c.Next()
 	}
 }

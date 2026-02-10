@@ -1,11 +1,11 @@
 package users
 
 import (
-	"net/http"
-	"strconv"
 	"ServiceBookingApp/internal/domain"
 	"ServiceBookingApp/internal/utils"
 	"github.com/gin-gonic/gin"
+	"net/http"
+	"strconv"
 )
 
 type UsersHandler struct {
@@ -55,6 +55,10 @@ func (h *UsersHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if m.IsActive == nil {
+		active := false
+		m.IsActive = &active
+	}
 	id, err := h.repo.Create(c.Request.Context(), &m)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -66,19 +70,19 @@ func (h *UsersHandler) Create(c *gin.Context) {
 
 func (h *UsersHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	existing, err := h.repo.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
-	
+
 	var updates domain.Users
 	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	if updates.Name != "" {
 		existing.Name = updates.Name
 	}
@@ -91,31 +95,31 @@ func (h *UsersHandler) Update(c *gin.Context) {
 	if updates.RoleId != "" {
 		existing.RoleId = updates.RoleId
 	}
-	
+
 	if err := h.repo.Update(c.Request.Context(), id, existing); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, existing)
 }
 
 func (h *UsersHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	user, err := h.repo.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
-	
+
 	now := utils.Now()
 	user.DeletedAt = &now
-	
+
 	if err := h.repo.Update(c.Request.Context(), id, user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
