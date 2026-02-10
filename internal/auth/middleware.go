@@ -110,7 +110,7 @@ func UserActiveMiddleware(repo domain.UsersRepository) gin.HandlerFunc {
 		}
 
 		if user.IsActive != nil && !*user.IsActive {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Account is blocked"})
+			c.AbortWithStatusJSON(http.StatusPaymentRequired, gin.H{"error": "Account is blocked"})
 			return
 		}
 
